@@ -28,7 +28,7 @@ class ELMoCharacterMapper:
     To be consistent with previously trained models, we include it here as special of existing
     character indexers.
     """
-    max_word_length = 50
+    max_word_length = 20
 
     # char ids 0-255 come from utf-8 encoding bytes
     # assign 256-300 to special chars
@@ -57,21 +57,62 @@ class ELMoCharacterMapper:
     eos_token = '</S>'
 
     @staticmethod
+    def set_max_word_length(max_word_length):
+        ELMoCharacterMapper.max_word_length = max_word_length
+        ELMoCharacterMapper.beginning_of_sentence_characters = _make_bos_eos(
+            ELMoCharacterMapper.beginning_of_sentence_character,
+            ELMoCharacterMapper.padding_character,
+            ELMoCharacterMapper.beginning_of_word_character,
+            ELMoCharacterMapper.end_of_word_character,
+            ELMoCharacterMapper.max_word_length
+        )
+        ELMoCharacterMapper.end_of_sentence_characters = _make_bos_eos(
+            ELMoCharacterMapper.end_of_sentence_character,
+            ELMoCharacterMapper.padding_character,
+            ELMoCharacterMapper.beginning_of_word_character,
+            ELMoCharacterMapper.end_of_word_character,
+            ELMoCharacterMapper.max_word_length
+        )
+
+    @staticmethod
+    def number_of_characters(num_chars):
+        # Set indices for arbitrary number of characters including special characters (max_index = #chars -1)
+        ELMoCharacterMapper.beginning_of_sentence_character = num_chars - 5  # <begin sentence>
+        ELMoCharacterMapper.end_of_sentence_character = num_chars - 4  # <end sentence>
+        ELMoCharacterMapper.beginning_of_word_character = num_chars - 3  # <begin word>
+        ELMoCharacterMapper.end_of_word_character = num_chars - 2  # <end word>
+        ELMoCharacterMapper.padding_character = num_chars - 1 # <padding>
+        ELMoCharacterMapper.beginning_of_sentence_characters = _make_bos_eos(
+            ELMoCharacterMapper.beginning_of_sentence_character,
+            ELMoCharacterMapper.padding_character,
+            ELMoCharacterMapper.beginning_of_word_character,
+            ELMoCharacterMapper.end_of_word_character,
+            ELMoCharacterMapper.max_word_length
+        )
+        ELMoCharacterMapper.end_of_sentence_characters = _make_bos_eos(
+            ELMoCharacterMapper.end_of_sentence_character,
+            ELMoCharacterMapper.padding_character,
+            ELMoCharacterMapper.beginning_of_word_character,
+            ELMoCharacterMapper.end_of_word_character,
+            ELMoCharacterMapper.max_word_length
+        )
+    @staticmethod
     def convert_word_to_char_ids(word: str) -> List[int]:
         if word == ELMoCharacterMapper.bos_token:
             char_ids = ELMoCharacterMapper.beginning_of_sentence_characters
         elif word == ELMoCharacterMapper.eos_token:
             char_ids = ELMoCharacterMapper.end_of_sentence_characters
         else:
-            word_encoded = word.encode('utf-8', 'ignore')[:(ELMoCharacterMapper.max_word_length-2)]
+            #word_encoded = word.encode('utf-8', 'ignore')[:(ELMoCharacterMapper.max_word_length-2)]
+            word_encoded = [ord(c) for c in word if ord(c) < 30000][:(ELMoCharacterMapper.max_word_length-2)]
             char_ids = [ELMoCharacterMapper.padding_character] * ELMoCharacterMapper.max_word_length
             char_ids[0] = ELMoCharacterMapper.beginning_of_word_character
             for k, chr_id in enumerate(word_encoded, start=1):
                 char_ids[k] = chr_id
             char_ids[len(word_encoded) + 1] = ELMoCharacterMapper.end_of_word_character
-
         # +1 one for masking
-        return [c + 1 for c in char_ids]
+        # [c + 1 for c in char_ids] -> no need for that, velmo takes care of it
+        return [c for c in char_ids]
 
 
 @TokenIndexer.register("elmo_characters")

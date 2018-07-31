@@ -284,12 +284,16 @@ class _ElmoCharacterEncoder(torch.nn.Module):
 
         self._load_weights()
 
-        # Cache the arrays for use in forward -- +1 due to masking.
+        ELMoCharacterMapper.set_max_word_length(self._options['char_cnn']['max_characters_per_token'])
+        ELMoCharacterMapper.number_of_characters(self._options['char_cnn']['n_characters'])
+
+        # Cache the arrays for use in forward -- +1 due to masking. -> No need for that anymore (velmo takes care of that)
         self._beginning_of_sentence_characters = torch.from_numpy(
-                numpy.array(ELMoCharacterMapper.beginning_of_sentence_characters) + 1
+                numpy.array(ELMoCharacterMapper.beginning_of_sentence_characters) #+ 1
         )
+
         self._end_of_sentence_characters = torch.from_numpy(
-                numpy.array(ELMoCharacterMapper.end_of_sentence_characters) + 1
+                numpy.array(ELMoCharacterMapper.end_of_sentence_characters) #+ 1
         )
 
     def get_output_dim(self):
